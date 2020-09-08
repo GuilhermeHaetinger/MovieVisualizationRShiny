@@ -1,4 +1,6 @@
-my_packages = c("shiny", "shinythemes", "RCurl", "dplyr", "jsonlite", "glue", "ggplot2", "purrr", "plotly", "GGally", "network")
+my_packages = c("shiny", "shinythemes", "RCurl", "dplyr",
+                "jsonlite", "glue", "ggplot2", "purrr",
+                "plotly", "GGally", "network", "igraph")
 
 install_if_missing = function(p) {
   if (p %in% rownames(installed.packages()) == FALSE) {

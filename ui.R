@@ -19,6 +19,7 @@ ui <- fluidPage(
     ),
     mainPanel(
       plotlyOutput('plot')
+
     )
   )
 )

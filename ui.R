@@ -4,6 +4,7 @@ library(shinythemes) # Temas para a interface do shiny
 install.packages("RCurl")
 library(RCurl)       # Abstração de comandos 'curl' (HTTP requests)
 install.packages("dplyr")
+
 library(dplyr)
 install.packages("jsonlite")
 library(jsonlite)    # Leitura de JSONs

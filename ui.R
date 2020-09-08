@@ -1,4 +1,5 @@
 library(shiny)
+library(shinythemes)
 ui <- fluidPage(
   theme=shinytheme('superhero'),
   headerPanel("Movie DB Analisys!"),
@@ -19,7 +20,7 @@ ui <- fluidPage(
     ),
     mainPanel(
       plotlyOutput('plot')
-
+     
     )
   )
 )

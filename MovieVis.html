@@ -1,0 +1,1059 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2020-08-27 Thu 13:26 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Visualização de Filmes em R com D3!</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="Guilherme G. Haetinger" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/htmlize.css"/>
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/readtheorg.css"/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/lib/js/jquery.stickytableheaders.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/readtheorg/js/readtheorg.js"></script>
+<style> #content{max-width:1200px;}</style>
+<style>pre.src{background:#343131;color:white;} </style>
+<style>iframe{border: none;} </style>
+<style>p{font-size: 1.125em;} </style>
+<style>img { width: 45%; } .lineup img { width: 30%; } .final img {width: 70%; } </style>
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&amp;dn=gpl-3.0.txt GPL-v3-or-Later
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.cacheClassElem = elem.className;
+         elem.cacheClassTarget = target.className;
+         target.className = "code-highlighted";
+         elem.className   = "code-highlighted";
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(elem.cacheClassElem)
+         elem.className = elem.cacheClassElem;
+       if(elem.cacheClassTarget)
+         target.className = elem.cacheClassTarget;
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 100,
+                        linebreaks: { automatic: "false" },
+                        webFont: "TeX"
+                       },
+        SVG: {scale: 100,
+              linebreaks: { automatic: "false" },
+              font: "TeX"},
+        NativeMML: {scale: 100},
+        TeX: { equationNumbers: {autoNumber: "AMS"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Visualização de Filmes em R com D3!</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org60cc014">1. Introdução</a>
+<ul>
+<li><a href="#org7a68125">1.1. Bibliotecas</a></li>
+<li><a href="#org217a057">1.2. Base e tratamento de dados</a></li>
+</ul>
+</li>
+<li><a href="#org2f9f355">2. Comunicação</a>
+<ul>
+<li><a href="#org3750ca1">2.1. Definição de constantes</a></li>
+<li><a href="#orgef40c09">2.2. <i>Queries</i> e criação de <i>Data Frames</i></a>
+<ul>
+<li><a href="#orgc58f43d">2.2.1. Buscando os atores de um filme</a></li>
+<li><a href="#org87220b1">2.2.2. Buscando os diretores de um filme</a></li>
+<li><a href="#org8d76ddc">2.2.3. Recebendo filmes</a></li>
+<li><a href="#org7d28936">2.2.4. Populando <i>Data Frames</i></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org2a9788d">3. Construção e Manipulação dos dados</a></li>
+<li><a href="#org8c05b3b">4. Mostrando os dados</a>
+<ul>
+<li><a href="#org1f284fe">4.1. Popularidade x Avaliação</a></li>
+<li><a href="#org3523829">4.2. <span class="todo TODO">TODO</span> Creating a simple website</a></li>
+<li><a href="#org011a80a">4.3. <span class="todo TODO">TODO</span> Simple Bipartite Graph</a></li>
+<li><a href="#org15c9e74">4.4. Sankey visualization</a></li>
+</ul>
+</li>
+<li><a href="#orgd35bd50">5. Usando Plotly</a></li>
+</ul>
+</div>
+</div>
+<p>
+<i>Nesse artigo, pretendo demonstrar como juntar o poder de análise e organização
+de <b>R</b> com a intuitividade visual da biblioteca de visualização web <b>D3</b>. Ao
+mesmo tempo, irei argumentar os benefícios da visualização de <b>networks</b>
+bipartidas sob o emprego de grafos regulares.</i>
+</p>
+
+<div id="outline-container-org60cc014" class="outline-2">
+<h2 id="org60cc014"><span class="section-number-2">1</span> Introdução</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Darei uma breve introdução sobre os meios que serão utilizados para nossa
+visualização. Temos que receber a base de dados assim como inicializar as
+ferramentas necessárias.
+</p>
+</div>
+
+<div id="outline-container-org7a68125" class="outline-3">
+<h3 id="org7a68125"><span class="section-number-3">1.1</span> Bibliotecas</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+Começamos nosso código por acrescentar as bibliotecas devidas. Alguns destaques
+são:
+</p>
+
+<ul class="org-ul">
+<li><code>shiny</code>:
+Pacote que auxilia na visualização web. Permite o uso e manipulação de
+variáveis locais, o que habilita uma interação com a <b>geração</b> de gráficos
+(não necessariamente a manipulação).</li>
+
+<li><code>dplyr</code>:
+Pacote que nos ajuda por simplificar o entendimento dos <i>datasets</i> que
+manipulamos enquanto programamos. Nos providencia comandos como <code>select()</code>,
+<code>arrange()</code>, etc.</li>
+
+<li><code>future</code>:
+Biblioteca que facilita o <i>multithreading</i>, necessário ao executar esse
+arquivo em uma <i>batch</i> só (para que processos do <code>shiny</code> rodem em
+<i>background</i>).</li>
+
+<li><code>networkD3</code>:
+Biblioteca que abstrai algumas funções da <i>D3.</i></li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #8be9fd;">library</span>(shiny)
+<span style="color: #8be9fd;">library</span>(shinythemes) <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Temas para a interface do shiny</span>
+<span style="color: #8be9fd;">library</span>(RCurl)       <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Abstra&#231;&#227;o de comandos 'curl' (HTTP requests)</span>
+<span style="color: #8be9fd;">library</span>(dplyr)
+<span style="color: #8be9fd;">library</span>(jsonlite)    <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Leitura de JSONs</span>
+<span style="color: #8be9fd;">library</span>(glue)        <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Opera&#231;&#245;es em strings parametrizadas (como uma 'F-string')</span>
+<span style="color: #8be9fd;">library</span>(ggplot2)
+<span style="color: #8be9fd;">library</span>(purrr)       <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Cont&#233;m a fun&#231;&#227;o 'map', muito &#250;til para aplicar fun&#231;&#245;es em listas</span>
+<span style="color: #8be9fd;">library</span>(future)
+<span style="color: #8be9fd;">library</span>(networkD3)
+<span style="color: #8be9fd;">library</span>(r2d3)
+<span style="color: #8be9fd;">library</span>(plotly)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org217a057" class="outline-3">
+<h3 id="org217a057"><span class="section-number-3">1.2</span> Base e tratamento de dados</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+Utilizaremos, para esse artigo, uma base de dados com informação sobre filmes.
+Busco achar a &ldquo;fórmula&rdquo; para construir um filme bem avaliado ou popular, assim
+como verificar a diferença entre os dois. Utilizarei a API do site <a href="https://www.themoviedb.org/documentation/api">MovieDB</a>.
+Ela nos fornece listas de filmes (&ldquo;top ranked&rdquo;, &ldquo;popular&rdquo;) assim como informação
+sobre os artistas que fizeram parte da produção do filme.
+</p>
+
+<p>
+A fórmula referenciada acima deve ter os seguintes campos:
+</p>
+
+<ul class="org-ul">
+<li><b>Quais são os 5 atores famosos que vamos utilizar?</b></li>
+<li><b>Qual o diretor?</b></li>
+<li><b>Quais as keywords para a história?</b></li>
+<li><b>A qual estúdio devemos mandar o roteiro?</b></li>
+</ul>
+
+<p>
+Iremos nos comunicar com esse sistema através de uma <b>API REST</b>, da qual
+receberemos <i>streams</i> de texto <b>JSON</b>. Esses, por sua vez, serão lidos e
+convertidos a <i>Data Frames</i>, estrutura de dados usualmente usada para análise de
+dados em diversas linguagens.
+</p>
+
+<p>
+Nós faremos uma <i>Query</i> para buscar os filmes e suas estruturas. Uma vez que
+tenhamos sua estrutura, faremos outra <i>Query</i> para buscar os atores e diretores
+associados.
+</p>
+
+<p>
+A seguinte seção focará na implementação da comunicação descrita acima.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2f9f355" class="outline-2">
+<h2 id="org2f9f355"><span class="section-number-2">2</span> Comunicação</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-org3750ca1" class="outline-3">
+<h3 id="org3750ca1"><span class="section-number-3">2.1</span> Definição de constantes</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+Para receber informação da API, precisamos de uma chave que recebi ao criar uma
+conta no site deles. Também, para receber os filmes, precisamos definir as
+páginas que buscaremos. São 20 filmes por página. Quero os 500 melhores filmes
+de cada categoria, portanto preciso de \(\frac{500}{50}=25\) páginas.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R">APIKey <span style="color: #8be9fd;">&lt;-</span> <span style="color: #f1fa8c;">'10987c9503d01085cdfa137320d65474'</span>
+num_of_pages <span style="color: #8be9fd;">&lt;-</span> <span style="color: #bd93f9; font-weight: bold;">1</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgef40c09" class="outline-3">
+<h3 id="orgef40c09"><span class="section-number-3">2.2</span> <i>Queries</i> e criação de <i>Data Frames</i></h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+<i>Observações:
+<code>%&gt;%</code> é o comando de &rsquo;pipe&rsquo;, i. e. passa o lado esquerdo como entrada para a
+função da direita. Ex: <code>x %&gt;% sum(2) = x+2</code>; Na minha notação, valores
+retornados marcados como &ldquo;.&rdquo; são implícitos pelo contexto, i.e. retornam o valor
+de outra função, sem atribuí-lo a uma variável para promover a tail-recursion de
+R</i>
+</p>
+</div>
+
+
+<div id="outline-container-orgc58f43d" class="outline-4">
+<h4 id="orgc58f43d"><span class="section-number-4">2.2.1</span> Buscando os atores de um filme</h4>
+<div class="outline-text-4" id="text-2-2-1">
+<p>
+Como é uma dependência para a criação do <i>Data Frame</i> de filmes, que tem um
+<i>Data Frame</i> de atores como item de cada linha, precisamos definir uma função
+para receber todos os atores de um dado filme.
+</p>
+
+<hr />
+<p>
+<code>fetch_cast</code>:
+</p>
+
+<p>
+← <code>movie_id</code>: Id do filme em questão :: <span class="underline">Number</span> ou <span class="underline">String</span>
+</p>
+
+<p>
+→ <code>result</code>: Resultado com todos os atores do filme :: <span class="underline">DataFrame</span>
+</p>
+<hr />
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">fetch_cast</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(movie_id) {
+  url  <span style="color: #8be9fd;">&lt;-</span> <span style="color: #f1fa8c;">'https://api.themoviedb.org/3/movie/'</span>
+  args <span style="color: #8be9fd;">&lt;-</span> glue(<span style="color: #f1fa8c;">'{movie_id}/credits?api_key={APIKey}'</span>)
+  request  <span style="color: #8be9fd;">&lt;-</span> glue(url, args)
+
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Mandar request</span>
+  result <span style="color: #8be9fd;">&lt;-</span> httpGET(request) <span style="color: #8be9fd;">%&gt;%</span>
+    <span style="color: #6272a4;"># </span><span style="color: #6272a4;">'Parse' o resultado e coletar o item 'cast', que cont&#233;m os atores</span>
+    fromJSON() <span style="color: #8be9fd;">%&gt;%</span> .$cast <span style="color: #8be9fd;">%&gt;%</span>
+    <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Transformar em Data Frame</span>
+    as.data.frame()
+
+  result
+}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org87220b1" class="outline-4">
+<h4 id="org87220b1"><span class="section-number-4">2.2.2</span> Buscando os diretores de um filme</h4>
+<div class="outline-text-4" id="text-2-2-2">
+<p>
+Do mesmo jeito que fizemos acima, podemos buscar o diretor a partir do seguinte código:
+</p>
+
+<hr />
+<p>
+<code>fetch_dir</code>:
+</p>
+
+<p>
+← <code>movie_id</code>: Id do filme em questão :: <span class="underline">Number</span> ou <span class="underline">String</span>
+</p>
+
+<p>
+→ <code>result</code>: Resultado com os diretores do filme :: <span class="underline">DataFrame</span>
+</p>
+<hr />
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">fetch_dir</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(movie_id) {
+  url  <span style="color: #8be9fd;">&lt;-</span> <span style="color: #f1fa8c;">'https://api.themoviedb.org/3/movie/'</span>
+  args <span style="color: #8be9fd;">&lt;-</span> glue(<span style="color: #f1fa8c;">'{movie_id}/credits?api_key={APIKey}'</span>)
+  request  <span style="color: #8be9fd;">&lt;-</span> glue(url, args)
+
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Mandar request</span>
+  result <span style="color: #8be9fd;">&lt;-</span> httpGET(request) <span style="color: #8be9fd;">%&gt;%</span>
+    <span style="color: #6272a4;"># </span><span style="color: #6272a4;">'Parse' o resultado e coletar o item 'cast', que cont&#233;m os atores</span>
+    fromJSON() <span style="color: #8be9fd;">%&gt;%</span> .$crew <span style="color: #8be9fd;">%&gt;%</span>
+    <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Transformar em Data Frame</span>
+    as.data.frame()
+
+  direct <span style="color: #8be9fd;">&lt;-</span> result[result$job == <span style="color: #f1fa8c;">'Director'</span>, ]
+  direct
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org8d76ddc" class="outline-4">
+<h4 id="org8d76ddc"><span class="section-number-4">2.2.3</span> Recebendo filmes</h4>
+<div class="outline-text-4" id="text-2-2-3">
+<p>
+Para buscarmos os filmes, devemos o fazer de modo que possamos acrescentar cada
+filme em um <i>Data Frame</i> principal. Nós vamos percorrer todas as páginas do
+modo \(num\_pages → 0\), concatenando os <i>Data Frames</i> retornados pela API.
+Faremos isso de modo recursivo, para não quebrar os princípios de usar R, que é,
+essencialmente, uma linguagem funcional.
+</p>
+
+<hr />
+<p>
+<code>fetch_movies</code>:
+</p>
+
+<p>
+← <code>num_pages</code>: Número de páginas que queremos recuperar :: <span class="underline">Number</span>
+</p>
+
+<p>
+← <code>section</code>: Lista da API :: <span class="underline">String</span>
+</p>
+
+<p>
+→ <code>.</code>: Resultado com todos os filmes das páginas e seus atores :: <span class="underline">DataFrame</span>
+</p>
+<hr />
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">fetch_movies</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(num_pages, section) {
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Parar quando estivermos buscando pela p&#225;gina 0 (inexistente)</span>
+  <span style="color: #ff79c6;">if</span> (num_pages == <span style="color: #bd93f9; font-weight: bold;">0</span>) {
+    <span style="color: #ff79c6;">return</span>(data.frame())
+  }
+
+  url  <span style="color: #8be9fd;">&lt;-</span> <span style="color: #f1fa8c;">'https://api.themoviedb.org/3/movie/'</span>
+  args <span style="color: #8be9fd;">&lt;-</span> glue(<span style="color: #f1fa8c;">"{section}?api_key={APIKey}&amp;language=en-US&amp;page={num_pages}"</span>)
+  request  <span style="color: #8be9fd;">&lt;-</span> glue(url, args)
+
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Mandar request</span>
+  result <span style="color: #8be9fd;">&lt;-</span> httpGET(request) <span style="color: #8be9fd;">%&gt;%</span>
+    <span style="color: #6272a4;"># </span><span style="color: #6272a4;">'Parse' o resultado e coletar o item 'result', que cont&#233;m as informa&#231;&#245;es</span>
+    fromJSON() <span style="color: #8be9fd;">%&gt;%</span> .$results <span style="color: #8be9fd;">%&gt;%</span>
+    <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Transformar em Data Frame</span>
+    as.data.frame()
+
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Criar coluna 'cast' e popul&#225;-la com os atores</span>
+  result$cast <span style="color: #8be9fd;">&lt;-</span> result$id <span style="color: #8be9fd;">%&gt;%</span>
+    lapply(<span style="color: #ff79c6;">function</span>(x) fetch_cast(x))
+
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Criar coluna 'dir' e popul&#225;-la com os diretores</span>
+  result$dir <span style="color: #8be9fd;">&lt;-</span> result$id <span style="color: #8be9fd;">%&gt;%</span>
+    lapply(<span style="color: #ff79c6;">function</span>(x) fetch_dir(x))
+
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Concatenar as 'rows' da p&#225;gina anterior</span>
+  rbind(fetch_movies(num_pages-<span style="color: #bd93f9; font-weight: bold;">1</span>, section), result)
+}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org7d28936" class="outline-4">
+<h4 id="org7d28936"><span class="section-number-4">2.2.4</span> Populando <i>Data Frames</i></h4>
+<div class="outline-text-4" id="text-2-2-4">
+<p>
+Agora, para popular os <i>Data Frames</i>, basta chamar a última função definida.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R">mov_pop <span style="color: #8be9fd;">&lt;-</span> fetch_movies(num_of_pages, <span style="color: #f1fa8c;">'popular'</span>)
+mov_top <span style="color: #8be9fd;">&lt;-</span> fetch_movies(num_of_pages, <span style="color: #f1fa8c;">'top_rated'</span>)
+names(mov_pop)
+</pre>
+</div>
+
+<ol class="org-ol">
+<li>&rsquo;popularity&rsquo;</li>
+<li>&rsquo;vote_count&rsquo;</li>
+<li>&rsquo;video&rsquo;</li>
+<li>&rsquo;poster_path&rsquo;</li>
+<li>&rsquo;id&rsquo;</li>
+<li>&rsquo;adult&rsquo;</li>
+<li>&rsquo;backdrop_path&rsquo;</li>
+<li>&rsquo;original_language&rsquo;</li>
+<li>&rsquo;original_title&rsquo;</li>
+<li>&rsquo;genre_ids&rsquo;</li>
+<li>&rsquo;title&rsquo;</li>
+<li>&rsquo;vote_average&rsquo;</li>
+<li>&rsquo;overview&rsquo;</li>
+<li>&rsquo;release_date&rsquo;</li>
+<li>&rsquo;cast&rsquo;</li>
+<li>&rsquo;dir&rsquo;</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R">glue(<span style="color: #f1fa8c;">"N&#250;mero de filmes recebidos: {nrow(mov_pop)}"</span>)
+</pre>
+</div>
+
+<p>
+&rsquo;Número de filmes recebidos: 20&rsquo;
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2a9788d" class="outline-2">
+<h2 id="org2a9788d"><span class="section-number-2">3</span> Construção e Manipulação dos dados</h2>
+<div class="outline-text-2" id="text-3">
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">setup_node_types</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(mov, cast, dir) {
+  mov <span style="color: #8be9fd;">&lt;-</span> mov[!duplicated(mov), ]
+  cast <span style="color: #8be9fd;">&lt;-</span> cast[!duplicated(cast$name), ]
+  mov_type <span style="color: #8be9fd;">&lt;-</span> rep(F, nrow(mov))
+  cast_type <span style="color: #8be9fd;">&lt;-</span> rep(T, nrow(cast))
+  dir_type <span style="color: #8be9fd;">&lt;-</span> rep(T, nrow(dir))
+  node_df <span style="color: #8be9fd;">&lt;-</span> data.frame(name=c(mov$title, cast$name, dir$name),
+                        type=c(mov_type, cast_type, dir_type))
+  node_df
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">setup_node_color_by_genre</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(mov, cast, dir) {
+  mov <span style="color: #8be9fd;">&lt;-</span> mov[!duplicated(mov), ]
+  cast <span style="color: #8be9fd;">&lt;-</span> cast[!duplicated(cast$name), ]
+  dir <span style="color: #8be9fd;">&lt;-</span> dir[!duplicated(dir$name), ]
+  cast_type <span style="color: #8be9fd;">&lt;-</span> rep(<span style="color: #bd93f9; font-weight: bold;">0</span>, nrow(cast))
+  dir_type <span style="color: #8be9fd;">&lt;-</span> rep(-<span style="color: #bd93f9; font-weight: bold;">1</span>, nrow(dir))
+  mov_type <span style="color: #8be9fd;">&lt;-</span> apply(mov, <span style="color: #bd93f9; font-weight: bold;">1</span>, <span style="color: #ff79c6;">function</span>(x) unlist(x$genre_ids)[<span style="color: #bd93f9; font-weight: bold;">1</span>])
+  node_df <span style="color: #8be9fd;">&lt;-</span> data.frame(name=c(mov$title, cast$name, dir$name),
+                        genre=as.character(c(mov_type, cast_type, dir_type)))
+  node_df
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">setup_relation</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(mov, group, row_num=<span style="color: #bd93f9; font-weight: bold;">1</span>, num_head=<span style="color: #bd93f9; font-weight: bold;">5</span>, movie_to_rel = T) {
+
+  <span style="color: #ff79c6;">if</span> (row_num &gt; nrow(mov)) {
+    <span style="color: #ff79c6;">return</span>(data.frame())
+  }
+
+  mov_row <span style="color: #8be9fd;">&lt;-</span> mov[row_num,]
+  mov_name <span style="color: #8be9fd;">&lt;-</span> mov_row$title
+  links <span style="color: #8be9fd;">&lt;-</span> data.frame()
+  <span style="color: #ff79c6;">if</span> (num_head != <span style="color: #bd93f9; font-weight: bold;">0</span>) {
+    links <span style="color: #8be9fd;">&lt;-</span> as.data.frame(mov_row[[group]]) <span style="color: #8be9fd;">%&gt;%</span> head(num_head)
+  } <span style="color: #ff79c6;">else</span> {
+    links <span style="color: #8be9fd;">&lt;-</span> as.data.frame(mov_row[[group]])
+  }
+
+  <span style="color: #ff79c6;">if</span> (nrow(links) == <span style="color: #bd93f9; font-weight: bold;">0</span>) {
+    <span style="color: #ff79c6;">return</span>(setup_links_relation(mov, row_num=row_num+<span style="color: #bd93f9; font-weight: bold;">1</span>))
+  }
+
+  repeated_movie_ls <span style="color: #8be9fd;">&lt;-</span> vector(<span style="color: #f1fa8c;">"list"</span>, length=nrow(links))
+  repeated_movie_ls[<span style="color: #bd93f9; font-weight: bold;">1</span>:nrow(links)] = mov_name
+  repeated_movie_ls <span style="color: #8be9fd;">&lt;-</span> unlist(repeated_movie_ls)
+
+  relation_df <span style="color: #8be9fd;">&lt;-</span> data.frame()
+  <span style="color: #ff79c6;">if</span> (movie_to_rel) {
+    relation_df <span style="color: #8be9fd;">&lt;-</span> data.frame(from=repeated_movie_ls, to=links$name)
+  } <span style="color: #ff79c6;">else</span> {
+    relation_df <span style="color: #8be9fd;">&lt;-</span> data.frame(from=links$name, to=repeated_movie_ls)
+  }
+
+  relation_df <span style="color: #8be9fd;">&lt;-</span> rbind(setup_relation(mov, group, row_num=row_num+<span style="color: #bd93f9; font-weight: bold;">1</span>, movie_to_rel = movie_to_rel),
+                       relation_df)
+  relation_df
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">get_standalone_group</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(mov_df, group, row_num=<span style="color: #bd93f9; font-weight: bold;">1</span>, num_head=<span style="color: #bd93f9; font-weight: bold;">5</span>) {
+  <span style="color: #ff79c6;">if</span> (row_num &gt; nrow(mov_df)) {
+    <span style="color: #ff79c6;">return</span>(data.frame())
+  }
+
+  mov_row = mov_df[row_num,]
+  grp = as.data.frame(mov_row[[group]]) <span style="color: #8be9fd;">%&gt;%</span> head(num_head)
+
+  next_df = get_standalone_group(mov_df, group, row_num=row_num+<span style="color: #bd93f9; font-weight: bold;">1</span>)
+
+  grp <span style="color: #8be9fd;">&lt;-</span> rbind(next_df, grp)
+
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">Probably inneficient to do this for every row -&gt; unecessary, also</span>
+  as.data.frame(grp[!duplicated(grp), ])
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">setup_sorted_graph_links</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(linked_df, node_df) {
+  node_df$rowid <span style="color: #8be9fd;">&lt;-</span> as.numeric(row.names(node_df))
+  <span style="color: #6272a4;">## </span><span style="color: #6272a4;">linked_df["source"] &lt;- apply(linked_df,1, function(x) node_df[node_df$name == x['from'], ]$rowid-1)</span>
+  <span style="color: #6272a4;">## </span><span style="color: #6272a4;">linked_df["target"] &lt;- apply(linked_df,1, function(x) node_df[node_df$name == x['to'], ]$rowid-1)</span>
+  linked_df$source <span style="color: #8be9fd;">&lt;-</span> mapply(<span style="color: #ff79c6;">function</span>(x) node_df[node_df$name == x, ]$rowid-<span style="color: #bd93f9; font-weight: bold;">1</span>, linked_df$from)
+  linked_df$target <span style="color: #8be9fd;">&lt;-</span> mapply(<span style="color: #ff79c6;">function</span>(x) node_df[node_df$name == x, ]$rowid-<span style="color: #bd93f9; font-weight: bold;">1</span>, linked_df$to)
+  linked_df
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">get_cast_occurances_df</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(person, rel) {
+  nrow(rel[rel$to == person, ]) + nrow(rel[rel$from == person, ])
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">setup_final_connections</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(prim_df, sec_df, nodes) {
+  sec_df <span style="color: #8be9fd;">&lt;-</span> sec_df[sec_df$to <span style="color: #8be9fd;">%in%</span> prim_df$from, ]
+  rbind(prim_df, sec_df)
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">setup_sankey</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(prim_df, sec_df, nodes, power=<span style="color: #bd93f9; font-weight: bold;">3</span>, threshold=<span style="color: #bd93f9; font-weight: bold;">0</span>) {
+  prim_df$value <span style="color: #8be9fd;">&lt;-</span> apply(prim_df, <span style="color: #bd93f9; font-weight: bold;">1</span>, <span style="color: #ff79c6;">function</span>(x) (get_cast_occurances_df(x[<span style="color: #f1fa8c;">'to'</span>], prim_df) ** power))
+  sec_df$value <span style="color: #8be9fd;">&lt;-</span> apply(sec_df, <span style="color: #bd93f9; font-weight: bold;">1</span>, <span style="color: #ff79c6;">function</span>(x) (get_cast_occurances_df(x[<span style="color: #f1fa8c;">'from'</span>], sec_df) ** power))
+  prim_df <span style="color: #8be9fd;">&lt;-</span> prim_df[prim_df$value ** (<span style="color: #bd93f9; font-weight: bold;">1</span>/power) &gt; threshold, ]
+  nodes <span style="color: #8be9fd;">&lt;-</span> nodes[(nodes$name <span style="color: #8be9fd;">%in%</span> prim_df$from | nodes$name <span style="color: #8be9fd;">%in%</span> prim_df$to |
+                  nodes$name <span style="color: #8be9fd;">%in%</span> sec_df$from), ]
+  nodes <span style="color: #8be9fd;">&lt;-</span> data.frame(name=nodes$name, genre=nodes$genre)
+  links <span style="color: #8be9fd;">&lt;-</span> setup_final_connections(prim_df, sec_df, nodes)
+  nodes <span style="color: #8be9fd;">&lt;-</span> nodes[(nodes$name <span style="color: #8be9fd;">%in%</span> links$from | nodes$name <span style="color: #8be9fd;">%in%</span> links$to), ]
+  nodes <span style="color: #8be9fd;">&lt;-</span> data.frame(name=nodes$name, genre=nodes$genre)
+  links <span style="color: #8be9fd;">&lt;-</span> setup_sorted_graph_links(links, nodes)
+  list(links, nodes)
+}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8c05b3b" class="outline-2">
+<h2 id="org8c05b3b"><span class="section-number-2">4</span> Mostrando os dados</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Nessa seção, vou mostrar algumas pequenas coisas que podemos &ldquo;plot&rdquo; com uma
+programação simples. O objetivo é introduzir as ferramentas dispostas de
+interação e visualização para dados sem nenhum processamento extenso.
+</p>
+</div>
+
+<div id="outline-container-org1f284fe" class="outline-3">
+<h3 id="org1f284fe"><span class="section-number-3">4.1</span> Popularidade x Avaliação</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+Podemos ver a relação entre os filmes populares e os bem avaliados. Por exemplo,
+qual a popularidade dos filmes bem avaliados e a avaliação dos filmes populares.
+Em <i>R</i>, a geração de gráficos é, de certo modo, incremental, i.e. vai se somando atributos.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-R">ggplot() +
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">adicionamos o plot em pontos com cor laranja para a rela&#231;&#227;o</span>
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">x=popularity, x=vote_average. Isso aplicado nos Data Frames</span>
+  <span style="color: #6272a4;"># </span><span style="color: #6272a4;">mov_pop e mov_top, respectivamente</span>
+  geom_point(data=mov_pop, aes(popularity, vote_average),
+             color=<span style="color: #f1fa8c;">'orange'</span>, alpha=<span style="color: #bd93f9; font-weight: bold;">0.25</span>, size=<span style="color: #bd93f9; font-weight: bold;">3</span>) +
+  geom_point(data=mov_top, aes(popularity, vote_average),
+             color=<span style="color: #f1fa8c;">'blue'</span>, alpha=<span style="color: #bd93f9; font-weight: bold;">0.25</span>, size=<span style="color: #bd93f9; font-weight: bold;">3</span>)
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./.ob-jupyter/94d515d7129afdcfd39dc307d7171ac7bd951e88.png" alt="94d515d7129afdcfd39dc307d7171ac7bd951e88.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org3523829" class="outline-3">
+<h3 id="org3523829"><span class="section-number-3">4.2</span> <span class="todo TODO">TODO</span> Creating a simple website</h3>
+<div class="outline-text-3" id="text-4-2">
+<div class="org-src-container">
+<pre class="src src-jupyter-R">plan(multisession)
+thread1 <span style="color: #8be9fd;">%&lt;-%</span> {
+
+  <span style="color: #8be9fd;">library</span>(shiny)
+  <span style="color: #8be9fd;">library</span>(shinythemes)
+  <span style="color: #8be9fd;">library</span>(dplyr)
+  <span style="color: #8be9fd;">library</span>(ggplot2)
+
+  ui <span style="color: #8be9fd;">&lt;-</span> fluidPage(
+    titlePanel(title=h4(<span style="color: #f1fa8c;">"Movie DB Analysis"</span>, align=<span style="color: #f1fa8c;">"center"</span>)),
+    sidebarPanel(
+      sliderInput(<span style="color: #f1fa8c;">"num"</span>, <span style="color: #f1fa8c;">"Number: "</span>, min=<span style="color: #bd93f9; font-weight: bold;">0</span>, max=<span style="color: #bd93f9; font-weight: bold;">25</span>, step=<span style="color: #bd93f9; font-weight: bold;">1</span>, value=<span style="color: #bd93f9; font-weight: bold;">1</span>,
+                  animate=animationOptions(<span style="color: #bd93f9; font-weight: bold;">100</span>))),
+    mainPanel(plotOutput(<span style="color: #f1fa8c;">"plot"</span>)))
+
+  <span style="color: #50fa7b;">server</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(input, output) {
+    react_pop <span style="color: #8be9fd;">&lt;-</span> reactive({
+      head(mov_pop, num_per_page * input$num)
+    })
+
+    react_top <span style="color: #8be9fd;">&lt;-</span> reactive({
+      head(mov_top, num_per_page * input$num)
+    })
+
+    output$plot <span style="color: #8be9fd;">&lt;-</span> renderPlot({
+      ggplot() +
+        geom_point(data=react_pop(), aes(popularity, vote_average),
+                   color=<span style="color: #f1fa8c;">'orange'</span>, alpha=<span style="color: #bd93f9; font-weight: bold;">0.25</span>, size=<span style="color: #bd93f9; font-weight: bold;">3</span>) +
+        geom_point(data=react_top(), aes(popularity, vote_average),
+                   color=<span style="color: #f1fa8c;">'blue'</span>, alpha=<span style="color: #bd93f9; font-weight: bold;">0.25</span>, size=<span style="color: #bd93f9; font-weight: bold;">3</span>) +
+        coord_cartesian(xlim=c(<span style="color: #bd93f9; font-weight: bold;">0</span>, <span style="color: #bd93f9; font-weight: bold;">160</span>), ylim=c(<span style="color: #bd93f9; font-weight: bold;">0</span>, <span style="color: #bd93f9; font-weight: bold;">10</span>))
+    },
+    height=<span style="color: #bd93f9; font-weight: bold;">400</span>, width=<span style="color: #bd93f9; font-weight: bold;">400</span>)
+  }
+  app <span style="color: #8be9fd;">&lt;-</span> shinyApp(ui, server)
+  runApp(app, port=<span style="color: #bd93f9; font-weight: bold;">5588</span>)
+}
+print(<span style="color: #f1fa8c;">"RShiny Thread dispatched"</span>)
+</pre>
+</div>
+
+<pre class="example">
+Error in get(".igraph.from", parent.frame()): object '.igraph.from' not found
+Traceback:
+
+1. thread1 %&lt;-% {
+ .     library(shiny)
+ .     library(shinythemes)
+ .     library(dplyr)
+ .     library(ggplot2)
+ .     ui &lt;- fluidPage(titlePanel(title = h4("Movie DB Analysis",
+ .         align = "center")), sidebarPanel(sliderInput("num", "Number: ",
+ .         min = 0, max = 25, step = 1, value = 1, animate = animationOptions(100))),
+ .         mainPanel(plotOutput("plot")))
+ .     server &lt;- function(input, output) {
+ .         react_pop &lt;- reactive({
+ .             head(mov_pop, num_per_page * input$num)
+ .         })
+ .         react_top &lt;- reactive({
+ .             head(mov_top, num_per_page * input$num)
+ .         })
+ .         output$plot &lt;- renderPlot({
+ .             ggplot() + geom_point(data = react_pop(), aes(popularity,
+ .                 vote_average), color = "orange", alpha = 0.25,
+ .                 size = 3) + geom_point(data = react_top(), aes(popularity,
+ .                 vote_average), color = "blue", alpha = 0.25,
+ .                 size = 3) + coord_cartesian(xlim = c(0, 160),
+ .                 ylim = c(0, 10))
+ .         }, height = 400, width = 400)
+ .     }
+ .     app &lt;- shinyApp(ui, server)
+ .     runApp(app, port = 5588)
+ . }
+2. get(".igraph.from", parent.frame())
+</pre>
+
+<iframe src="http://127.0.0.1:5588/" title="Sankey Visualization" style="width:100%;height:30em"></iframe>
+</div>
+</div>
+
+<div id="outline-container-org011a80a" class="outline-3">
+<h3 id="org011a80a"><span class="section-number-3">4.3</span> <span class="todo TODO">TODO</span> Simple Bipartite Graph</h3>
+<div class="outline-text-3" id="text-4-3">
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #8be9fd;">library</span>(igraph)
+cast <span style="color: #8be9fd;">&lt;-</span> get_standalone_cast_df(mov_pop)
+rel <span style="color: #8be9fd;">&lt;-</span> setup_cast_relation(mov_pop)
+names <span style="color: #8be9fd;">&lt;-</span> setup_node_types(mov_pop, cast)
+
+g <span style="color: #8be9fd;">&lt;-</span> graph_from_data_frame(rel, vertices = names, directed = F)
+deg <span style="color: #8be9fd;">&lt;-</span> degree(g, mode=<span style="color: #f1fa8c;">"all"</span>)
+shape <span style="color: #8be9fd;">&lt;-</span> c(<span style="color: #f1fa8c;">"circle"</span>, <span style="color: #f1fa8c;">"square"</span>)
+
+LO = layout_as_bipartite(g)
+LO = LO[,c(<span style="color: #bd93f9; font-weight: bold;">2</span>,<span style="color: #bd93f9; font-weight: bold;">1</span>)]
+
+<span style="color: #8be9fd;">options</span>(repr.plot.width=<span style="color: #bd93f9; font-weight: bold;">10</span>, repr.plot.height=<span style="color: #bd93f9; font-weight: bold;">10</span>)
+plot(g, layout=LO,
+     vertex.label.cex= <span style="color: #bd93f9; font-weight: bold;">0.01</span> + unlist(map((deg-<span style="color: #bd93f9; font-weight: bold;">9</span>)/<span style="color: #bd93f9; font-weight: bold;">10</span> * V(g)$type, <span style="color: #ff79c6;">function</span>(x) max(x, <span style="color: #bd93f9; font-weight: bold;">0</span>))),
+     vertex.color=c(<span style="color: #f1fa8c;">"green"</span>, <span style="color: #f1fa8c;">"cyan"</span>)[V(g)$type+<span style="color: #bd93f9; font-weight: bold;">1</span>],
+     vertex.size= deg,
+     vertex.shape = shape[as.numeric(V(g)$type)+<span style="color: #bd93f9; font-weight: bold;">1</span>],
+     <span style="color: #6272a4;">## </span><span style="color: #6272a4;">edge.width = 0.1,</span>
+     <span style="color: #6272a4;">## </span><span style="color: #6272a4;">asp=100,</span>
+     label.dist=deg*<span style="color: #bd93f9; font-weight: bold;">100</span>,
+     frame=T)
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./.ob-jupyter/5671e54fc2b6a85b242111f820bb118b5974f938.png" alt="5671e54fc2b6a85b242111f820bb118b5974f938.png" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org15c9e74" class="outline-3">
+<h3 id="org15c9e74"><span class="section-number-3">4.4</span> Sankey visualization</h3>
+<div class="outline-text-3" id="text-4-4">
+<div class="org-src-container">
+<pre class="src src-jupyter-R"><span style="color: #50fa7b;">sankey_vis</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(links, nodes) {
+  plot_ly(
+      type=<span style="color: #f1fa8c;">"sankey"</span>,
+      orientation=<span style="color: #f1fa8c;">"h"</span>,
+      node = list(
+        label=nodes$name,
+        pad = <span style="color: #bd93f9; font-weight: bold;">1</span>,
+        thickness = <span style="color: #bd93f9; font-weight: bold;">50</span>,
+        line = list(
+          color = <span style="color: #f1fa8c;">"black"</span>,
+          width = <span style="color: #bd93f9; font-weight: bold;">0</span>
+        )
+      ),
+      link = list(
+        source = links$source,
+        target = links$target,
+        value = links$value
+      )
+    ) <span style="color: #8be9fd;">%&gt;%</span> layout(
+            title = <span style="color: #f1fa8c;">"Director X Movie X Actor bipartite graph!"</span>,
+            width=<span style="color: #bd93f9; font-weight: bold;">1000</span>,
+            height=<span style="color: #bd93f9; font-weight: bold;">800</span>,
+            autosize=T,
+            fig_bgcolor = <span style="color: #f1fa8c;">"rgb(255, 255, 255)"</span>,
+            plot_bgcolor = <span style="color: #f1fa8c;">"rgba(0, 0, 0, 0)"</span>,
+            paper_bgcolor = <span style="color: #f1fa8c;">"rgba(0, 0, 0, 0)"</span>,
+            font = list(
+              size = <span style="color: #bd93f9; font-weight: bold;">10</span>,
+              color = <span style="color: #f1fa8c;">"rgba(1, 1, 1, 1)"</span>
+            ),
+            xaxis = list(showgrid = F, zeroline = F),
+            yaxis = list(showgrid = F, zeroline = F)
+          )
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd35bd50" class="outline-2">
+<h2 id="orgd35bd50"><span class="section-number-2">5</span> Usando Plotly</h2>
+<div class="outline-text-2" id="text-5">
+<div class="org-src-container">
+<pre class="src src-jupyter-R">ui <span style="color: #8be9fd;">&lt;-</span> fluidPage(
+  theme=shinytheme(<span style="color: #f1fa8c;">'superhero'</span>),
+
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput(<span style="color: #f1fa8c;">"threshold"</span>, label = <span style="color: #f1fa8c;">"threshold"</span>,
+                  min = <span style="color: #bd93f9; font-weight: bold;">0</span>, max = <span style="color: #bd93f9; font-weight: bold;">10</span>, value = <span style="color: #bd93f9; font-weight: bold;">1</span>, step = <span style="color: #bd93f9; font-weight: bold;">1</span>)
+    ),
+    mainPanel(
+      plotlyOutput(<span style="color: #f1fa8c;">'plot'</span>)
+    )
+  )
+)
+
+<span style="color: #50fa7b;">server</span> <span style="color: #8be9fd;">&lt;-</span> <span style="color: #ff79c6;">function</span>(input, output) {
+
+  output$plot <span style="color: #8be9fd;">&lt;-</span> renderPlotly({
+
+    nodes <span style="color: #8be9fd;">&lt;-</span> setup_node_color_by_genre(mov_pop, std_cast, std_dir)
+    act_rel = setup_relation(mov_pop, <span style="color: #f1fa8c;">"cast"</span>)
+    dir_rel = setup_relation(mov_pop, <span style="color: #f1fa8c;">"dir"</span>, movie_to_rel=F, num_head = <span style="color: #bd93f9; font-weight: bold;">0</span>)
+    act_links <span style="color: #8be9fd;">&lt;-</span> setup_sorted_graph_links(act_rel, nodes)
+    dir_links <span style="color: #8be9fd;">&lt;-</span> setup_sorted_graph_links(dir_rel, nodes)
+    ans <span style="color: #8be9fd;">&lt;-</span> setup_sankey(act_links, dir_links, nodes, threshold=input$threshold)
+
+    links = ans[[<span style="color: #bd93f9; font-weight: bold;">1</span>]]
+    nodes = ans[[<span style="color: #bd93f9; font-weight: bold;">2</span>]]
+
+    plot <span style="color: #8be9fd;">&lt;-</span> sankey_vis(links, nodes)
+   
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+</pre>
+</div>
+
+<pre class="example">
+
+Listening on http://127.0.0.1:3986
+
+Warning message:
+“Specifying width/height in layout() is now deprecated.
+Please specify in ggplotly() or plot_ly()”
+Warning message:
+“'layout' objects don't have these attributes: 'fig_bgcolor'
+Valid attributes include:
+'font', 'title', 'uniformtext', 'autosize', 'width', 'height', 'margin', 'paper_bgcolor', 'plot_bgcolor', 'separators', 'hidesources', 'showlegend', 'colorway', 'datarevision', 'uirevision', 'editrevision', 'selectionrevision', 'template', 'modebar', 'meta', 'transition', '_deprecated', 'clickmode', 'dragmode', 'hovermode', 'hoverdistance', 'spikedistance', 'hoverlabel', 'selectdirection', 'grid', 'calendar', 'xaxis', 'yaxis', 'ternary', 'scene', 'geo', 'mapbox', 'polar', 'radialaxis', 'angularaxis', 'direction', 'orientation', 'editType', 'legend', 'annotations', 'shapes', 'images', 'updatemenus', 'sliders', 'colorscale', 'coloraxis', 'metasrc', 'barmode', 'bargap', 'mapType'
+”
+Warning message:
+“'layout' objects don't have these attributes: 'fig_bgcolor'
+Valid attributes include:
+'font', 'title', 'uniformtext', 'autosize', 'width', 'height', 'margin', 'paper_bgcolor', 'plot_bgcolor', 'separators', 'hidesources', 'showlegend', 'colorway', 'datarevision', 'uirevision', 'editrevision', 'selectionrevision', 'template', 'modebar', 'meta', 'transition', '_deprecated', 'clickmode', 'dragmode', 'hovermode', 'hoverdistance', 'spikedistance', 'hoverlabel', 'selectdirection', 'grid', 'calendar', 'xaxis', 'yaxis', 'ternary', 'scene', 'geo', 'mapbox', 'polar', 'radialaxis', 'angularaxis', 'direction', 'orientation', 'editType', 'legend', 'annotations', 'shapes', 'images', 'updatemenus', 'sliders', 'colorscale', 'coloraxis', 'metasrc', 'barmode', 'bargap', 'mapType'
+”
+Warning message:
+“Specifying width/height in layout() is now deprecated.
+Please specify in ggplotly() or plot_ly()”
+Warning message:
+“'layout' objects don't have these attributes: 'fig_bgcolor'
+Valid attributes include:
+'font', 'title', 'uniformtext', 'autosize', 'width', 'height', 'margin', 'paper_bgcolor', 'plot_bgcolor', 'separators', 'hidesources', 'showlegend', 'colorway', 'datarevision', 'uirevision', 'editrevision', 'selectionrevision', 'template', 'modebar', 'meta', 'transition', '_deprecated', 'clickmode', 'dragmode', 'hovermode', 'hoverdistance', 'spikedistance', 'hoverlabel', 'selectdirection', 'grid', 'calendar', 'xaxis', 'yaxis', 'ternary', 'scene', 'geo', 'mapbox', 'polar', 'radialaxis', 'angularaxis', 'direction', 'orientation', 'editType', 'legend', 'annotations', 'shapes', 'images', 'updatemenus', 'sliders', 'colorscale', 'coloraxis', 'metasrc', 'barmode', 'bargap', 'mapType'
+”
+Warning message:
+“'layout' objects don't have these attributes: 'fig_bgcolor'
+Valid attributes include:
+'font', 'title', 'uniformtext', 'autosize', 'width', 'height', 'margin', 'paper_bgcolor', 'plot_bgcolor', 'separators', 'hidesources', 'showlegend', 'colorway', 'datarevision', 'uirevision', 'editrevision', 'selectionrevision', 'template', 'modebar', 'meta', 'transition', '_deprecated', 'clickmode', 'dragmode', 'hovermode', 'hoverdistance', 'spikedistance', 'hoverlabel', 'selectdirection', 'grid', 'calendar', 'xaxis', 'yaxis', 'ternary', 'scene', 'geo', 'mapbox', 'polar', 'radialaxis', 'angularaxis', 'direction', 'orientation', 'editType', 'legend', 'annotations', 'shapes', 'images', 'updatemenus', 'sliders', 'colorscale', 'coloraxis', 'metasrc', 'barmode', 'bargap', 'mapType'
+”
+Warning message:
+“Specifying width/height in layout() is now deprecated.
+Please specify in ggplotly() or plot_ly()”
+Warning message:
+“'layout' objects don't have these attributes: 'fig_bgcolor'
+Valid attributes include:
+'font', 'title', 'uniformtext', 'autosize', 'width', 'height', 'margin', 'paper_bgcolor', 'plot_bgcolor', 'separators', 'hidesources', 'showlegend', 'colorway', 'datarevision', 'uirevision', 'editrevision', 'selectionrevision', 'template', 'modebar', 'meta', 'transition', '_deprecated', 'clickmode', 'dragmode', 'hovermode', 'hoverdistance', 'spikedistance', 'hoverlabel', 'selectdirection', 'grid', 'calendar', 'xaxis', 'yaxis', 'ternary', 'scene', 'geo', 'mapbox', 'polar', 'radialaxis', 'angularaxis', 'direction', 'orientation', 'editType', 'legend', 'annotations', 'shapes', 'images', 'updatemenus', 'sliders', 'colorscale', 'coloraxis', 'metasrc', 'barmode', 'bargap', 'mapType'
+”
+Warning message:
+“'layout' objects don't have these attributes: 'fig_bgcolor'
+Valid attributes include:
+'font', 'title', 'uniformtext', 'autosize', 'width', 'height', 'margin', 'paper_bgcolor', 'plot_bgcolor', 'separators', 'hidesources', 'showlegend', 'colorway', 'datarevision', 'uirevision', 'editrevision', 'selectionrevision', 'template', 'modebar', 'meta', 'transition', '_deprecated', 'clickmode', 'dragmode', 'hovermode', 'hoverdistance', 'spikedistance', 'hoverlabel', 'selectdirection', 'grid', 'calendar', 'xaxis', 'yaxis', 'ternary', 'scene', 'geo', 'mapbox', 'polar', 'radialaxis', 'angularaxis', 'direction', 'orientation', 'editType', 'legend', 'annotations', 'shapes', 'images', 'updatemenus', 'sliders', 'colorscale', 'coloraxis', 'metasrc', 'barmode', 'bargap', 'mapType'
+”
+</pre>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Guilherme G. Haetinger</p>
+<p class="date">Created: 2020-08-27 Thu 13:26</p>
+</div>
+</body>
+</html>

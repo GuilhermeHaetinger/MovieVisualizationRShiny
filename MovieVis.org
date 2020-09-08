@@ -1,0 +1,904 @@
+# -*- org-export-babel-evaluate: nil -*-
+#+PROPERTY: header-args:jupyter-R :session MovieVis :async yes :results replace :pandoc t :tangle "./movie_vis.R"
+#+SETUPFILE: https://raw.githubusercontent.com/fniessen/org-html-themes/master/setup/theme-readtheorg.setup
+#+SETUPFILE: ./setup.org
+#+TITLE: Visualização de Filmes em R com D3!
+
+
+/Nesse artigo, pretendo demonstrar como juntar o poder de análise e organização
+de *R* com a intuitividade visual da biblioteca de visualização web *D3*. Ao
+mesmo tempo, irei argumentar os benefícios da visualização de *networks*
+bipartidas sob o emprego de grafos regulares./
+
+* Introdução
+
+Darei uma breve introdução sobre os meios que serão utilizados para nossa
+visualização. Temos que receber a base de dados assim como inicializar as
+ferramentas necessárias.
+
+** Bibliotecas
+
+Começamos nosso código por acrescentar as bibliotecas devidas. Alguns destaques
+são:
+
+- =shiny=:
+  Pacote que auxilia na visualização web. Permite o uso e manipulação de
+  variáveis locais, o que habilita uma interação com a *geração* de gráficos
+  (não necessariamente a manipulação).
+
+- =dplyr=:
+  Pacote que nos ajuda por simplificar o entendimento dos /datasets/ que
+  manipulamos enquanto programamos. Nos providencia comandos como =select()=,
+  =arrange()=, etc.
+
+- =future=:
+  Biblioteca que facilita o /multithreading/, necessário ao executar esse
+  arquivo em uma /batch/ só (para que processos do =shiny= rodem em
+  /background/).
+
+- =networkD3=:
+  Biblioteca que abstrai algumas funções da /D3./
+
+#+BEGIN_SRC jupyter-R
+library(shiny)
+library(shinythemes) # Temas para a interface do shiny
+library(RCurl)       # Abstração de comandos 'curl' (HTTP requests)
+library(dplyr)
+library(jsonlite)    # Leitura de JSONs
+library(glue)        # Operações em strings parametrizadas (como uma 'F-string')
+library(ggplot2)
+library(purrr)       # Contém a função 'map', muito útil para aplicar funções em listas
+library(future)
+library(networkD3)
+library(r2d3)
+library(plotly)
+library(data.table)
+library(GGally)
+library(network)
+#+END_SRC
+
+#+RESULTS:
+
+** Base e tratamento de dados
+
+Utilizaremos, para esse artigo, uma base de dados com informação sobre filmes.
+Busco achar a "fórmula" para construir um filme bem avaliado ou popular, assim
+como verificar a diferença entre os dois. Utilizarei a API do site [[https://www.themoviedb.org/documentation/api][MovieDB]].
+Ela nos fornece listas de filmes ("top ranked", "popular") assim como informação
+sobre os artistas que fizeram parte da produção do filme.
+
+A fórmula referenciada acima deve ter os seguintes campos:
+
+- *Quais são os 5 atores famosos que vamos utilizar?*
+- *Qual o diretor?*
+- *Quais as keywords para a história?*
+- *A qual estúdio devemos mandar o roteiro?*
+
+Iremos nos comunicar com esse sistema através de uma *API REST*, da qual
+receberemos /streams/ de texto *JSON*. Esses, por sua vez, serão lidos e
+convertidos a /Data Frames/, estrutura de dados usualmente usada para análise de
+dados em diversas linguagens.
+
+Nós faremos uma /Query/ para buscar os filmes e suas estruturas. Uma vez que
+tenhamos sua estrutura, faremos outra /Query/ para buscar os atores e diretores
+associados.
+
+A seguinte seção focará na implementação da comunicação descrita acima.
+
+* Comunicação
+** Definição de constantes
+
+Para receber informação da API, precisamos de uma chave que recebi ao criar uma
+conta no site deles. Também, para receber os filmes, precisamos definir as
+páginas que buscaremos. São 20 filmes por página. Quero os 500 melhores filmes
+de cada categoria, portanto preciso de $\frac{500}{50}=25$ páginas.
+
+#+BEGIN_SRC jupyter-R
+APIKey <- '10987c9503d01085cdfa137320d65474'
+num_of_pages <- 10
+#+END_SRC
+
+#+RESULTS:
+
+** /Queries/ e criação de /Data Frames/
+/Observações:
+=%>%= é o comando de 'pipe', i. e. passa o lado esquerdo como entrada para a
+função da direita. Ex: ~x %>% sum(2) = x+2~; Na minha notação, valores
+retornados marcados como "." são implícitos pelo contexto, i.e. retornam o valor
+de outra função, sem atribuí-lo a uma variável para promover a tail-recursion de
+R/
+
+*** Buscando a Pessoa
+
+-----
+=fetch_person=:
+
+← =person_id=: Id da pessoa em questão :: _Number_ ou _String_
+
+→ =result=: Resultado com todos os atributos da pessoa :: _String_
+-----
+
+#+BEGIN_SRC jupyter-R
+fetch_person <- function(person_id) {
+  url  <- 'https://api.themoviedb.org/3/person/'
+  args <- glue('{person_id}?api_key={APIKey}')
+  request  <- glue(url, args)
+
+  # Mandar request
+  result <- tryCatch ({
+    httpGET(request)
+    }, error = function(e) {
+      return('{}')
+    })
+
+  result
+}
+#+END_SRC
+
+#+RESULTS:
+
+*** Buscando os atores de um filme
+
+Como é uma dependência para a criação do /Data Frame/ de filmes, que tem um
+/Data Frame/ de atores como item de cada linha, precisamos definir uma função
+para receber todos os atores de um dado filme.
+
+-----
+=fetch_cast=:
+
+← =movie_id=: Id do filme em questão :: _Number_ ou _String_
+
+→ =result=: Resultado com todos os atores do filme :: _DataFrame_
+-----
+
+#+BEGIN_SRC jupyter-R
+fetch_cast <- function(movie_id, size=10) {
+  url  <- 'https://api.themoviedb.org/3/movie/'
+  args <- glue('{movie_id}/credits?api_key={APIKey}')
+  request  <- glue(url, args)
+
+  # Mandar request
+  result <- httpGET(request) %>%
+    # 'Parse' o resultado e coletar o item 'cast', que contém os atores
+    fromJSON() %>% .$cast %>%
+    # Transformar em Data Frame
+    as.data.frame()
+
+  result <- head(result, size)
+
+  actor_jsonls <- paste(c(lapply(result$id, fetch_person)), collapse=',')
+  actor_jsonls <- paste(c('[', actor_jsonls, ']'), collapse='')
+  result <- actor_jsonls %>% fromJSON() %>% as.data.frame()
+
+  result
+}
+#+END_SRC
+
+#+RESULTS:
+
+*** Buscando os diretores de um filme
+
+Do mesmo jeito que fizemos acima, podemos buscar o diretor a partir do seguinte código:
+
+-----
+=fetch_dir=:
+
+← =movie_id=: Id do filme em questão :: _Number_ ou _String_
+
+→ =result=: Resultado com os diretores do filme :: _DataFrame_
+-----
+
+#+BEGIN_SRC jupyter-R
+fetch_dir <- function(movie_id, size=5) {
+  url  <- 'https://api.themoviedb.org/3/movie/'
+  args <- glue('{movie_id}/credits?api_key={APIKey}')
+  request  <- glue(url, args)
+
+  # Mandar request
+  result <- httpGET(request) %>%
+    # 'Parse' o resultado e coletar o item 'cast', que contém os atores
+    fromJSON() %>% .$crew %>%
+    # Transformar em Data Frame
+    as.data.frame()
+
+  direct <- result[result$job == 'Director', ] %>% head(5)
+
+  dir_jsonls <- paste(lapply(direct$id, fetch_person), collapse=',')
+  dir_jsonls <- paste(c('[', dir_jsonls, ']'), collapse='')
+  result <- dir_jsonls %>% fromJSON() %>% as.data.frame()
+
+  result
+}
+#+END_SRC
+
+#+RESULTS:
+*** Recebendo filmes
+
+Para buscarmos os filmes, devemos o fazer de modo que possamos acrescentar cada
+filme em um /Data Frame/ principal. Nós vamos percorrer todas as páginas do
+modo $num\_pages → 0$, concatenando os /Data Frames/ retornados pela API.
+Faremos isso de modo recursivo, para não quebrar os princípios de usar R, que é,
+essencialmente, uma linguagem funcional.
+
+-----
+=fetch_movies=:
+
+← =num_pages=: Número de páginas que queremos recuperar :: _Number_
+
+← =section=: Lista da API :: _String_
+
+→ =.=: Resultado com todos os filmes das páginas e seus atores :: _DataFrame_
+-----
+
+#+BEGIN_SRC jupyter-R
+fetch_movies <- function(num_pages, section) {
+  # Parar quando estivermos buscando pela página 0 (inexistente)
+  if (num_pages == 0) {
+    return(data.frame())
+  }
+
+  url  <- 'https://api.themoviedb.org/3/movie/'
+  args <- glue("{section}?api_key={APIKey}&language=en-US&page={num_pages}")
+  request  <- glue(url, args)
+
+  # Mandar request
+  result <- httpGET(request) %>%
+    # 'Parse' o resultado e coletar o item 'result', que contém as informações
+    fromJSON() %>% .$results %>%
+    # Transformar em Data Frame
+    as.data.frame()
+
+  # Criar coluna 'cast' e populá-la com os atores
+  result$cast <- result$id %>%
+    lapply(fetch_cast)
+
+  # Criar coluna 'dir' e populá-la com os diretores
+  result$dir <- result$id %>%
+    lapply(fetch_dir)
+
+  # Concatenar as 'rows' da página anterior
+  rbind(fetch_movies(num_pages-1, section), result)
+}
+#+END_SRC
+
+#+RESULTS:
+
+*** Populando /Data Frames/
+Agora, para popular os /Data Frames/, basta chamar a última função definida.
+
+#+BEGIN_SRC jupyter-R
+if (!file.exists("mov_pop.RDS") || !file.exists("mov_top.RDS")){
+  mov_pop <- fetch_movies(num_of_pages, 'popular')
+  mov_top <- fetch_movies(num_of_pages, 'top_rated')
+  saveRDS(mov_pop, file="mov_pop.RDS")
+  saveRDS(mov_top, file="mov_top.RDS")
+} else {
+  mov_pop <- readRDS("mov_pop.RDS")
+  mov_top <- readRDS("mov_top.RDS")
+}
+names(mov_pop)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+1.  'popularity'
+2.  'vote_count'
+3.  'video'
+4.  'poster_path'
+5.  'id'
+6.  'adult'
+7.  'backdrop_path'
+8.  'original_language'
+9.  'original_title'
+10. 'genre_ids'
+11. 'title'
+12. 'vote_average'
+13. 'overview'
+14. 'release_date'
+15. 'cast'
+16. 'dir'
+:END:
+
+* Construção e Manipulação dos dados
+
+#+BEGIN_SRC jupyter-R
+setup_node_types <- function(mov, cast, dir) {
+  mov <- mov[!duplicated(mov), ]
+  cast <- cast[!duplicated(cast$name), ]
+  mov_type <- rep(F, nrow(mov))
+  cast_type <- rep(T, nrow(cast))
+  dir_type <- rep(T, nrow(dir))
+  node_df <- data.frame(name=c(mov$title, cast$name, dir$name),
+                        type=c(mov_type, cast_type, dir_type))
+  node_df
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+setup_node_color_by_genre <- function(mov, cast, dir) {
+  mov <- mov[!duplicated(mov), ]
+  cast <- cast[!duplicated(cast$name), ]
+  dir <- dir[!duplicated(dir$name), ]
+  cast_type <- rep(0, nrow(cast))
+  dir_type <- rep(-1, nrow(dir))
+  mov_type <- apply(mov, 1, function(x) unlist(x$genre_ids)[1])
+  node_df <- data.frame(name=c(mov$title, cast$name, dir$name),
+                        genre=as.character(c(mov_type, cast_type, dir_type)))
+  node_df
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+setup_relation <- function(mov, group, row_num=1, num_head=5, movie_to_rel = T) {
+
+  if (row_num > nrow(mov)) {
+    return(data.frame())
+  }
+
+  mov_row <- mov[row_num,]
+  mov_name <- mov_row$title
+  links <- data.frame()
+  if (num_head != 0) {
+    links <- as.data.frame(mov_row[[group]]) %>% head(num_head)
+  } else {
+    links <- as.data.frame(mov_row[[group]])
+  }
+
+  if (nrow(links) == 0) {
+    return(setup_relation(mov, group, row_num=row_num+1, movie_to_rel = movie_to_rel))
+  }
+
+  repeated_movie_ls <- vector("list", length=nrow(links))
+  repeated_movie_ls[1:nrow(links)] = mov_name
+  repeated_movie_ls <- unlist(repeated_movie_ls)
+
+  relation_df <- data.frame()
+  if (movie_to_rel) {
+    relation_df <- data.frame(from=repeated_movie_ls, to=links$name)
+  } else {
+    relation_df <- data.frame(from=links$name, to=repeated_movie_ls)
+  }
+
+  relation_df <- rbind(setup_relation(mov, group, row_num=row_num+1, movie_to_rel = movie_to_rel),
+                       relation_df)
+  relation_df
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+get_standalone_group <- function(mov_df, group, row_num=1, num_head=5) {
+  if (row_num > nrow(mov_df)) {
+    return(data.frame())
+  }
+
+  mov_row = mov_df[row_num,]
+  grp = as.data.frame(mov_row[[group]]) %>% head(num_head)
+
+  next_df = get_standalone_group(mov_df, group, row_num=row_num+1)
+
+  grp <- rbind(next_df, grp)
+
+  # Probably inneficient to do this for every row -> unecessary, also
+  as.data.frame(grp[!duplicated(grp), ])
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+setup_sorted_graph_links <- function(linked_df, node_df) {
+  node_df$rowid <- as.numeric(row.names(node_df))
+  linked_df <- linked_df[!duplicated(linked_df), ]
+  node_df <- node_df[!duplicated(node_df), ]
+  linked_df$source <- mapply(function(x) node_df[node_df$name == x, ]$rowid-1, linked_df$from)
+  linked_df$target <- mapply(function(x) node_df[node_df$name == x, ]$rowid-1, linked_df$to)
+  linked_df
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+get_cast_occurances_df <- function(person, rel) {
+  nrow(rel[rel$to == person, ]) + nrow(rel[rel$from == person, ])
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+setup_final_connections <- function(prim_df, sec_df, nodes) {
+  sec_df <- sec_df[sec_df$to %in% prim_df$from, ]
+  sec_df <- sec_df[!(sec_df$from %in% prim_df$to), ]
+  rbind(prim_df, sec_df)
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+setup_sankey <- function(prim_df, sec_df, nodes, power=3, threshold=0) {
+  prim_df$value <- apply(prim_df, 1, function(x) (get_cast_occurances_df(x['to'], prim_df) ** power))
+  sec_df$value <- apply(sec_df, 1, function(x) (get_cast_occurances_df(x['from'], sec_df) ** power))
+  prim_df <- prim_df[prim_df$value ** (1/power) > threshold, ]
+  nodes <- nodes[(nodes$name %in% prim_df$from | nodes$name %in% prim_df$to |
+                  nodes$name %in% sec_df$from), ]
+  nodes <- nodes[!duplicated(nodes$name), ]
+  nodes <- data.frame(name=nodes$name, genre=nodes$genre)
+  links <- setup_final_connections(prim_df, sec_df, nodes)
+  nodes <- nodes[(nodes$name %in% links$from | nodes$name %in% links$to), ]
+  nodes <- data.frame(name=nodes$name, genre=nodes$genre)
+  links <- setup_sorted_graph_links(links, nodes)
+  list(links, nodes)
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+get_pic <- function(cast, dir, movs, nodes, point) {
+  if (point >= nrow(nodes)) return(NULL)
+  element <- nodes[point+1, ]
+  url <- "https://image.tmdb.org/t/p/w300_and_h450_bestv2/"
+  db <- NULL
+  if (element$genre == 0) {
+    db <- cast[!duplicated(cast$name), ]
+    item = "name"
+    image_item = "profile_path"
+  } else if(element$genre == -1) {
+    db <- dir[!duplicated(dir$name), ]
+    item = "name"
+    image_item = "profile_path"
+  } else {
+    db <- movs[!duplicated(movs$title), ]
+    item = "title"
+    image_item = "poster_path"
+  }
+  profile_path <- db[db[item] == element$name, ][[image_item]]
+  glue(url, profile_path)
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+get_cast_str <- function(actor) {
+  glue(
+    glue("<h2>{toString(actor$name)}</h2><br/>"),
+    glue("Birthday: {toString(actor$birthday)}<br/>"),
+    glue("Popularity: {toString(actor$popularity)}<br/><br/>"),
+    glue('<p style="font-size: 8pt">{actor$biography}')
+  )
+}
+
+get_dir_str <- function(direct) {
+  glue(
+    glue("<h2>{toString(direct$name)}</h2><br/>"),
+    glue("Birthday: {toString(direct$birthday)}<br/>"),
+    glue("Popularity: {toString(direct$popularity)}<br/><br/>"),
+    glue('<p style="font-size: 8pt">{direct$biography}')
+  )
+}
+
+get_mov_str <- function(mov) {
+  glue(
+    glue("<h2>{toString(mov$title)}</h2><br/>"),
+    glue("Release Date: {toString(mov$release_date)}<br/>"),
+    glue("Popularity: {toString(mov$popularity)}<br/><br/>"),
+    glue('<p style="font-size: 8pt">{mov$overview}')
+  )
+}
+
+get_info_str <- function(cast, dir, movs, nodes, point) {
+  if (point >= nrow(nodes)) return(NULL)
+  element <- nodes[point+1, ]
+  url <- "https://image.tmdb.org/t/p/w300_and_h450_bestv2/"
+  db <- NULL
+  if (element$genre == 0) {
+    db <- cast[cast$name == element$name, ]
+    db <- db[!duplicated(db$name), ]
+    return(get_cast_str(db))
+  } else if(element$genre == -1) {
+    db <- dir[dir$name == element$name, ]
+    db <- db[!duplicated(db$name), ]
+    return(get_dir_str(db))
+  } else {
+    db <- movs[movs$title == element$name, ]
+    db <- db[!duplicated(db$title), ]
+    return(get_mov_str(db))
+  }
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+set_cast_pop_color <- function(nodes, cast, dir, cast_limit=30, dir_limit=10) {
+  nodes$colors <- unlist(apply(nodes, 1, function(x) {
+    if (x["genre"] == 0) {
+      pop = cast[cast$name == x["name"], ]
+      pop = pop[!duplicated(pop$name), ]
+      pop = pop$popularity
+      return(rgb(min(1.0, pop/cast_limit), 0, 0))
+    } else if (x["genre"] == -1) {
+      pop = dir[dir$name == x["name"], ]
+      pop = pop[!duplicated(pop$name), ]
+      pop = pop$popularity
+      return(rgb(0, min(1.0, pop/dir_limit), 0))
+    }
+    return(x["colors"])
+  }))
+  nodes
+}
+#+END_SRC
+
+* Mostrando os dados
+Nessa seção, vou mostrar algumas pequenas coisas que podemos "plot" com uma
+programação simples. O objetivo é introduzir as ferramentas dispostas de
+interação e visualização para dados sem nenhum processamento extenso.
+
+** COMMENT Popularidade x Avaliação
+
+Podemos ver a relação entre os filmes populares e os bem avaliados. Por exemplo,
+qual a popularidade dos filmes bem avaliados e a avaliação dos filmes populares.
+Em /R/, a geração de gráficos é, de certo modo, incremental, i.e. vai se somando atributos.
+
+#+BEGIN_SRC jupyter-R
+ggplot() +
+  # adicionamos o plot em pontos com cor laranja para a relação
+  # x=popularity, x=vote_average. Isso aplicado nos Data Frames
+  # mov_pop e mov_top, respectivamente
+  geom_point(data=mov_pop, aes(popularity, vote_average),
+             color='orange', alpha=0.25, size=3) +
+  geom_point(data=mov_top, aes(popularity, vote_average),
+             color='blue', alpha=0.25, size=3)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+#+attr_org: :width 420 :height 420
+[[file:./.ob-jupyter/94d515d7129afdcfd39dc307d7171ac7bd951e88.png]]
+:END:
+
+** TODO COMMENT Creating a simple website
+#+BEGIN_SRC jupyter-R
+plan(multisession)
+thread1 %<-% {
+
+  library(shiny)
+  library(shinythemes)
+  library(dplyr)
+  library(ggplot2)
+
+  ui <- fluidPage(
+    titlePanel(title=h4("Movie DB Analysis", align="center")),
+    sidebarPanel(
+      sliderInput("num", "Number: ", min=0, max=25, step=1, value=1,
+                  animate=animationOptions(100))),
+    mainPanel(plotOutput("plot")))
+
+  server <- function(input, output) {
+    react_pop <- reactive({
+      head(mov_pop, num_per_page * input$num)
+    })
+
+    react_top <- reactive({
+      head(mov_top, num_per_page * input$num)
+    })
+
+    output$plot <- renderPlot({
+      ggplot() +
+        geom_point(data=react_pop(), aes(popularity, vote_average),
+                   color='orange', alpha=0.25, size=3) +
+        geom_point(data=react_top(), aes(popularity, vote_average),
+                   color='blue', alpha=0.25, size=3) +
+        coord_cartesian(xlim=c(0, 160), ylim=c(0, 10))
+    },
+    height=400, width=400)
+  }
+  app <- shinyApp(ui, server)
+  runApp(app, port=5588)
+}
+print("RShiny Thread dispatched")
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+# [goto error]
+#+begin_example
+Error in get(".igraph.from", parent.frame()): object '.igraph.from' not found
+Traceback:
+
+1. thread1 %<-% {
+ .     library(shiny)
+ .     library(shinythemes)
+ .     library(dplyr)
+ .     library(ggplot2)
+ .     ui <- fluidPage(titlePanel(title = h4("Movie DB Analysis",
+ .         align = "center")), sidebarPanel(sliderInput("num", "Number: ",
+ .         min = 0, max = 25, step = 1, value = 1, animate = animationOptions(100))),
+ .         mainPanel(plotOutput("plot")))
+ .     server <- function(input, output) {
+ .         react_pop <- reactive({
+ .             head(mov_pop, num_per_page * input$num)
+ .         })
+ .         react_top <- reactive({
+ .             head(mov_top, num_per_page * input$num)
+ .         })
+ .         output$plot <- renderPlot({
+ .             ggplot() + geom_point(data = react_pop(), aes(popularity,
+ .                 vote_average), color = "orange", alpha = 0.25,
+ .                 size = 3) + geom_point(data = react_top(), aes(popularity,
+ .                 vote_average), color = "blue", alpha = 0.25,
+ .                 size = 3) + coord_cartesian(xlim = c(0, 160),
+ .                 ylim = c(0, 10))
+ .         }, height = 400, width = 400)
+ .     }
+ .     app <- shinyApp(ui, server)
+ .     runApp(app, port = 5588)
+ . }
+2. get(".igraph.from", parent.frame())
+#+end_example
+:END:
+
+#+BEGIN_EXPORT html
+<iframe src="http://127.0.0.1:5588/" title="Sankey Visualization" style="width:100%;height:30em"></iframe>
+#+END_EXPORT
+
+** TODO COMMENT Simple Bipartite Graph
+
+#+BEGIN_SRC jupyter-R
+library(igraph)
+cast <- get_standalone_cast_df(mov_pop)
+rel <- setup_cast_relation(mov_pop)
+names <- setup_node_types(mov_pop, cast)
+
+g <- graph_from_data_frame(rel, vertices = names, directed = F)
+deg <- degree(g, mode="all")
+shape <- c("circle", "square")
+
+LO = layout_as_bipartite(g)
+LO = LO[,c(2,1)]
+
+options(repr.plot.width=10, repr.plot.height=10)
+plot(g, layout=LO,
+     vertex.label.cex= 0.01 + unlist(map((deg-9)/10 * V(g)$type, function(x) max(x, 0))),
+     vertex.color=c("green", "cyan")[V(g)$type+1],
+     vertex.size= deg,
+     vertex.shape = shape[as.numeric(V(g)$type)+1],
+     ## edge.width = 0.1,
+     ## asp=100,
+     label.dist=deg*100,
+     frame=T)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+#+attr_org: :width 600 :height 600
+[[file:./.ob-jupyter/5671e54fc2b6a85b242111f820bb118b5974f938.png]]
+:END:
+** Network visualization
+#+BEGIN_SRC jupyter-R
+library(igraph)
+net_vis <- function(links, nodes) {
+  G <- graph_from_data_frame(links, vertices=nodes)
+  deg <- degree(G)
+  V(G)$color <- factor(V(G)$genre)
+  g <- ggnet2(G, size = deg**3, label=TRUE, mode="fruchtermanreingold",
+              color="color", palette="Paired", legend.position="none") +
+    geom_text(aes(label=label), check_overlap=TRUE, size=deg/2, color="white", alpha=0.6) +
+    guides(color = FALSE, size = FALSE) +
+    theme(
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA),
+      axis.title.x=element_blank(),
+      axis.text.x=element_blank(),
+      axis.ticks.x=element_blank(),
+      axis.title.y=element_blank(),
+      axis.text.y=element_blank(),
+      axis.ticks.y=element_blank()
+    )
+  ggplotly(g, source="main", width=1000, height=800)
+}
+#+END_SRC
+
+#+RESULTS:
+
+** Sankey visualization
+#+BEGIN_SRC jupyter-R
+sankey_vis <- function(links, nodes, cast, dir) {
+  na_list <- rep(NA, nrow(nodes))
+  na_df <- data.frame(from=na_list, to=na_list, source=na_list, target=na_list, value=na_list)
+  links <- rbind(na_df, links)
+  color_df <- data.frame(genre=double(), color=character())
+  nodes$colors <-unlist(lapply(as.numeric(nodes$genre), function(x) {
+    if (x %in% color_df$genre) return(color_df[color_df$genre==x,]["color"])
+    color_df <<- rbind(color_df, data.frame(genre=x, color=rgb(runif(1)*255, runif(1)*255, ((1+runif(1))/2)*255, maxColorValue=255)))
+    return(color_df[color_df$genre==x,]["color"])
+  }
+  ))
+  nodes <- set_cast_pop_color(nodes, cast, dir)
+  plot_ly(
+    type="sankey",
+    orientation="h",
+    source="main",
+    node = list(
+      label=nodes$name,
+      color=nodes$colors,
+      pad = 0,
+      thickness = 50,
+      line = list(
+        color = "black",
+        width = 0
+      )
+    ),
+    link = list(
+      source = links$source,
+      target = links$target,
+      value = links$value,
+      color = 'rgba(255,255,127,0.1)'
+    ),
+
+    width=1000,
+    height=800
+    ) %>% layout(
+            autosize=T,
+            plot_bgcolor = "rgba(0, 0, 0, 0)",
+            paper_bgcolor = "rgba(0, 0, 0, 0)",
+            font = list(
+              size = 10,
+              color = "rgba(1, 1, 1, 1)"
+            ),
+            xaxis = list(showgrid = F, zeroline = F),
+            yaxis = list(showgrid = F, zeroline = F)
+          )
+}
+#+END_SRC
+
+#+RESULTS:
+
+* COMMENT Usando D3Network
+#+BEGIN_SRC jupyter-R
+std_cast <- get_standalone_group(mov_pop, "cast")
+std_dir <- get_standalone_group(mov_pop, "dir")
+
+# TODO get actual genres
+nodes <- setup_node_color_by_genre(mov_pop, std_cast, std_dir)
+
+act_rel = setup_relation(mov_pop, "cast")
+dir_rel = setup_relation(mov_pop, "dir", movie_to_rel=F, num_head = 0)
+act_links <- setup_sorted_graph_links(act_rel, nodes)
+dir_links <- setup_sorted_graph_links(dir_rel, nodes)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-R
+ans <- setup_sankey(act_links, dir_links, nodes, threshold=1)
+links = ans[[1]]
+nodes = ans[[2]]
+p <- simpleNetwork(links)
+saveNetwork(p, "network.html")
+
+p <- sankeyNetwork(links, nodes, Source="source", Target="target",
+                   Value = "value", NodeID="name", NodeGroup="genre",
+                   nodePadding=3, nodeWidth=70, fontSize=12, height=2000,
+                   margin=list(0, 0, 0, 0), units="occurence score")
+saveNetwork(p, "sankey.html")
+#+END_SRC
+
+#+RESULTS:
+
+* Usando Plotly
+
+#+BEGIN_SRC jupyter-R
+df_ls <- list("Popular Movies" = mov_pop,
+              "Top Rated Movies" = mov_top)
+
+pop_cast <- get_standalone_group(mov_pop, "cast")
+pop_dir <- get_standalone_group(mov_pop, "dir")
+top_cast <- get_standalone_group(mov_top, "cast")
+top_dir <- get_standalone_group(mov_top, "dir")
+
+cast_ls <- list("Popular Movies" = pop_cast,
+              "Top Rated Movies" = top_cast)
+dir_ls <- list("Popular Movies" = pop_dir,
+              "Top Rated Movies" = top_dir)
+
+buf_frame <- NULL
+
+ui <- fluidPage(
+  theme=shinytheme('superhero'),
+  headerPanel("Movie DB Analisys!"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("threshold", label = "threshold",
+                  min = 0, max = 10, value = 1, step = 1),
+      selectInput("df", "Movie Database", c("Popular Movies", "Top Rated Movies"),
+                  selected = "Popular Movies"),
+      checkboxInput("sankey", "Sankey", value=TRUE),
+        fluidRow(
+          column(6,
+                 uiOutput("frame")),
+          column(5,
+                 offset = 1,
+                 htmlOutput("description"))
+      ),
+    ),
+    mainPanel(
+      plotlyOutput('plot')
+    )
+  )
+)
+
+server <- function(input, output) {
+
+  nodes <- NULL
+
+  output$plot <- renderPlotly({
+
+    nodes <<- setup_node_color_by_genre(df_ls[[input$df]], cast_ls[[input$df]], dir_ls[[input$df]])
+    act_rel <- setup_relation(df_ls[[input$df]], "cast")
+    dir_rel <- setup_relation(df_ls[[input$df]], "dir", movie_to_rel=F, num_head = 0)
+    act_links <- setup_sorted_graph_links(act_rel, nodes)
+    dir_links <- setup_sorted_graph_links(dir_rel, nodes)
+    ans <- setup_sankey(act_links, dir_links, nodes, threshold=input$threshold)
+
+    links <- ans[[1]]
+    nodes <<- ans[[2]]
+    if (input$sankey) {
+      plot <- sankey_vis(links, nodes, cast_ls[[input$df]], dir_ls[[input$df]])
+    } else {
+      plot <- net_vis(links, nodes)
+    }
+  })
+  output$frame <- renderUI({
+    eventdat <- event_data('plotly_hover', source="main") # get event data from source main
+    if(is.null(eventdat) == T) return(buf_frame)        # If NULL dont do anything
+    point <- as.numeric(eventdat[['pointNumber']]) # Index of the data point being charted
+    url <- get_pic(cast_ls[[input$df]], dir_ls[[input$df]], df_ls[[input$df]], nodes, point)
+    if(is.null(url)) return(buf_frame)
+    buf_frame <<- tags$image(src=url, width=300, height=450)
+    if (input$sankey) {
+      output$description <- renderText(get_info_str(cast_ls[[input$df]], dir_ls[[input$df]], df_ls[[input$df]], nodes, point))
+      return(buf_frame)
+    } else {
+      output$description <- NULL
+      buf_frame <<- NULL
+      return(NULL)
+    }
+  })
+}
+
+app <- shinyApp(ui = ui, server = server)
+runApp(app, port=5533)
+#+END_SRC
+
+#+RESULTS:
+:
+: Listening on http://127.0.0.1:5533
+:
+
+* Setup :noexport:
+
+#+NAME: startup
+#+BEGIN_SRC elisp :results none :eval no-export
+(defun set-tex-method ()
+  (set-input-method 'TeX)
+  (define-key evil-insert-state-local-map (kbd "_ _")
+    (lambda () (interactive) (insert "_")))
+  (define-key evil-insert-state-local-map (kbd "^ ^")
+    (lambda () (interactive) (insert "^"))))
+
+(set-tex-method)
+#+END_SRC
+
+# Local Variables:
+# eval: (progn (org-babel-goto-named-src-block "startup") (org-babel-execute-src-block))
+# End:

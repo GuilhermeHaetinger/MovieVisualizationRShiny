@@ -1,10 +1,10 @@
 library(shiny)
 install.packages("shinythemes")
 library(shinythemes) # Temas para a interface do shiny
-install.packages("RCurl")
-library(RCurl)       # Abstração de comandos 'curl' (HTTP requests)
 install.packages("dplyr")
 library(dplyr)
+install.packages("RCurl")
+library(RCurl)       # Abstração de comandos 'curl' (HTTP requests)
 install.packages("jsonlite")
 library(jsonlite)    # Leitura de JSONs
 install.packages("glue")
@@ -21,6 +21,7 @@ install.packages("GGally")
 library(GGally)
 install.packages("network")
 library(network)
+
 ui <- fluidPage(
   theme=shinytheme('superhero'),
   headerPanel("Movie DB Analisys!"),

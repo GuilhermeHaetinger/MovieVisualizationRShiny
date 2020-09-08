@@ -1,4 +1,5 @@
 library(shiny)
+install.packages("shinythemes")
 library(shinythemes)
 ui <- fluidPage(
   theme=shinytheme('superhero'),

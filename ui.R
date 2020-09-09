@@ -17,7 +17,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       sliderInput("threshold", label = "threshold",
-                  min = 0, max = 10, value = 1, step = 1),
+                  min = 1, max = 8, value = 1, step = 1),
       selectInput("df", "Movie Database", c("Popular Movies", "Top Rated Movies"),
                   selected = "Popular Movies"),
       checkboxInput("sankey", "Sankey", value=TRUE),

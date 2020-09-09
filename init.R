@@ -1,5 +1,5 @@
 my_packages = c("shiny", "shinythemes", "RCurl", "dplyr",
-                "jsonlite", "glue", "ggplot2", "purrr",
+                "jsonlite", "glue", "ggplot2", "purrr", "intergraph",
                 "plotly", "GGally", "network", "igraph", "sna")
 
 install_if_missing = function(p) {
